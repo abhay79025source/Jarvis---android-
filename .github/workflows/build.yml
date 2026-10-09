@@ -31,12 +31,28 @@ jobs:
         run: |
           mkdir project
           unzip -q jarvis-android-assistant-project.zip -d project
-          echo "Searching for Android project..."
           find project -name settings.gradle.kts -o -name settings.gradle
+
+      - name: Fix unsupported XML attribute
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for p in Path("project").rglob("voice_interaction_service.xml"):
+              s = p.read_text()
+              s = re.sub(
+                  r'\s+android:supportsLaunchFromKeyguard="[^"]*"',
+                  '',
+                  s
+              )
+              p.write_text(s)
+              print("Fixed:", p)
+          PY
 
       - name: Build APK
         run: |
-          PROJECT_DIR=$(find project -name settings.gradle.kts -o -name settings.gradle | head -1 | xargs -r dirname)
+          PROJECT_DIR=$(find project \( -name settings.gradle.kts -o -name settings.gradle \) -print -quit | xargs -r dirname)
 
           if [ -z "$PROJECT_DIR" ]; then
             echo "ERROR: Android project settings file not found."
